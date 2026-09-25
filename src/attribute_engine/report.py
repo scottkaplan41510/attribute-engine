@@ -1,6 +1,6 @@
 """Plain-English report. Every finding is worded as a correlation, never a cause."""
 
-from stats import METRIC
+from .stats import METRIC
 
 CAVEAT = ("These are correlations, not causes. A small sample only catches big "
           "effects, so treat anything here as a hypothesis to test.")

@@ -9,8 +9,8 @@ can later be scored against how it performs.
 import json
 import re
 
-from discover import call_claude
-from tag import tag_rows
+from .discover import call_claude
+from .tag import tag_rows
 
 
 def winners(results, config):

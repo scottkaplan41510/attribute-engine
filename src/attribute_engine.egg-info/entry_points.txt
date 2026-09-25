@@ -1,0 +1,2 @@
+[console_scripts]
+attribute-engine = attribute_engine.run:main

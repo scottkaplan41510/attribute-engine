@@ -7,7 +7,7 @@ Each row is one data point. For every attribute:
 P-values are corrected for multiple comparisons (Benjamini-Hochberg).
 Low-confidence Jev answers are kept; they are flagged upstream, never dropped.
 
-Usage: python src/stats.py --input output/tags.csv --output output/results.csv
+Usage: python -m attribute_engine.stats --input output/tags.csv --output output/results.csv
 """
 
 import argparse
@@ -18,7 +18,8 @@ from pathlib import Path
 import numpy as np
 from scipy import stats
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path.cwd()  # data/, output/ and .env are read from where you run it
+CONFIG = Path(__file__).resolve().parent / "attributes.yaml"
 METRIC = "conversion_rate"
 ALPHA = 0.05
 
@@ -109,7 +110,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default=str(ROOT / "output/tags.csv"))
     parser.add_argument("--output", default=str(ROOT / "output/results.csv"))
-    parser.add_argument("--config", default=str(ROOT / "attributes.yaml"))
+    parser.add_argument("--config", default=str(CONFIG))
     args = parser.parse_args()
     config = yaml.safe_load(open(args.config))
     rows = list(csv.DictReader(open(args.input)))

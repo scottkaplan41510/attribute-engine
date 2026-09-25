@@ -5,7 +5,7 @@ answered by Jev through Vercel AI Gateway: one call per row, every Jev
 question in that single call. Jev returns a weight for every option, and we
 keep all of them. Nothing is dropped for low confidence; it is only flagged.
 
-Usage: python src/tag.py --input data/sample_ads.csv --output output/tags.csv
+Usage: python -m attribute_engine.tag --input data/sample_ads.csv --output output/tags.csv
 """
 
 import argparse
@@ -21,12 +21,13 @@ import requests
 import yaml
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path.cwd()  # data/, output/ and .env are read from where you run it
+CONFIG = Path(__file__).resolve().parent / "attributes.yaml"
 GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/evaluate"
 MAX_ATTEMPTS = 8
 
 
-def load_config(path=ROOT / "attributes.yaml"):
+def load_config(path=CONFIG):
     with open(path) as f:
         return yaml.safe_load(f)
 
@@ -137,7 +138,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default=str(ROOT / "data/sample_ads.csv"))
     parser.add_argument("--output", default=str(ROOT / "output/tags.csv"))
-    parser.add_argument("--config", default=str(ROOT / "attributes.yaml"))
+    parser.add_argument("--config", default=str(CONFIG))
     args = parser.parse_args()
 
     load_dotenv(ROOT / ".env")

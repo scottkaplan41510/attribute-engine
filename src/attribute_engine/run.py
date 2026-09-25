@@ -6,7 +6,7 @@
   4. Jev tags the approved attributes, stats round 2
   5. Claude writes new copy from the winning attributes; Jev checks it
 
-Usage: python src/run.py --input data/sample_ads.csv [--auto-approve]
+Usage: python -m attribute_engine.run --input data/sample_ads.csv [--auto-approve]
 """
 
 import argparse
@@ -19,14 +19,14 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from discover import discover  # noqa: E402
-from generate import generate  # noqa: E402
-from report import write_report  # noqa: E402
-from stats import METRIC, run as run_stats, write as write_results  # noqa: E402
-from tag import tag_rows  # noqa: E402
+from .discover import discover
+from .generate import generate
+from .report import write_report
+from .stats import METRIC, run as run_stats, write as write_results
+from .tag import tag_rows
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path.cwd()  # data/, output/ and .env are read from where you run it
+CONFIG = Path(__file__).resolve().parent / "attributes.yaml"
 OUT = ROOT / "output"
 
 
@@ -44,7 +44,7 @@ def step(n, text):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default=str(ROOT / "data/sample_ads.csv"))
-    parser.add_argument("--config", default=str(ROOT / "attributes.yaml"))
+    parser.add_argument("--config", default=str(CONFIG))
     parser.add_argument("--auto-approve", action="store_true",
                         help="keep every discovered attribute without asking")
     args = parser.parse_args()

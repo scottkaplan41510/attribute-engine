@@ -4,7 +4,7 @@ Claude never sees the performance metric. It returns up to N attributes in the
 attributes.yaml format. The user approves which to keep (or --auto-approve),
 and the approved ones are written to a round-2 config for Jev to tag.
 
-Usage: python src/discover.py --input data/sample_ads.csv [--auto-approve]
+Usage: python -m attribute_engine.discover --input data/sample_ads.csv [--auto-approve]
 """
 
 import argparse
@@ -19,7 +19,8 @@ import requests
 import yaml
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path.cwd()  # data/, output/ and .env are read from where you run it
+CONFIG = Path(__file__).resolve().parent / "attributes.yaml"
 CHAT_URL = "https://ai-gateway.vercel.sh/v1/chat/completions"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 
@@ -100,7 +101,7 @@ def main():
     args = parser.parse_args()
 
     load_dotenv(ROOT / ".env")
-    config = yaml.safe_load(open(ROOT / "attributes.yaml"))
+    config = yaml.safe_load(open(CONFIG))
     texts = [r["copy"] for r in csv.DictReader(open(args.input))]  # copy only
     result = discover(config, texts, args.auto_approve)
 

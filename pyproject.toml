@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "attribute-engine"
+version = "0.1.0"
+description = "Find which attributes of your content correlate with performance."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pyyaml",
+    "requests",
+    "python-dotenv",
+]
+
+[project.scripts]
+attribute-engine = "attribute_engine.run:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+attribute_engine = ["attributes.yaml"]

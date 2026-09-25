@@ -88,7 +88,7 @@ PROOFS = [
 
 CTAS = ["Start your free trial.", "Book a demo today.", "Learn more."]
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path.cwd()  # data/, output/ and .env are read from where you run it
 DATA = ROOT / "data"
 
 
