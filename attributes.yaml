@@ -10,7 +10,7 @@
 settings:
   model: typesafe-ai/jev
   low_confidence: 0.6   # answers below this are flagged, never dropped
-  concurrency: 1
+  concurrency: 10
   test_option_weights: false  # also test each option weight as a sliding scale
 
 attributes:
