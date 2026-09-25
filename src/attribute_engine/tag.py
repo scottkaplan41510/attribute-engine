@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 ROOT = Path.cwd()  # data/, output/ and .env are read from where you run it
 CONFIG = Path(__file__).resolve().parent / "attributes.yaml"
 GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/evaluate"
-MAX_ATTEMPTS = 8
+MAX_ATTEMPTS = 4  # with 1s, 2s, 4s waits: gives up after ~7s of retrying
 
 
 def load_config(path=CONFIG):
@@ -59,6 +59,10 @@ def code_attributes(text):
     return {"word_count": len(words)}
 
 
+class JevBusyError(RuntimeError):
+    """Jev (or the gateway in front of it) kept saying it was overloaded."""
+
+
 def call_jev(payload, api_key):
     """One Jev call. Retries transient failures, then raises."""
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -66,17 +70,19 @@ def call_jev(payload, api_key):
         started = time.perf_counter()
         r = None
         try:
-            r = requests.post(GATEWAY_URL, headers=headers, json=payload, timeout=30)
+            r = requests.post(GATEWAY_URL, headers=headers, json=payload, timeout=20)
             seconds = time.perf_counter() - started
             if r.status_code == 200:
                 return r.json(), seconds
+            if r.status_code in (429, 503) and attempt == MAX_ATTEMPTS:
+                raise JevBusyError(f"Jev is busy ({r.status_code}): {r.text[:200]}")
             if r.status_code not in (429, 500, 502, 503, 504) or attempt == MAX_ATTEMPTS:
                 raise RuntimeError(f"Jev call failed ({r.status_code}): {r.text[:300]}")
         except requests.RequestException:
             if attempt == MAX_ATTEMPTS:
                 raise
         retry_after = r.headers.get("retry-after") if r is not None else None
-        time.sleep(float(retry_after) if retry_after else min(2 ** attempt, 30))
+        time.sleep(min(float(retry_after) if retry_after else 2 ** (attempt - 1), 4))
 
 
 def parse_answers(response, attrs, low_confidence):
