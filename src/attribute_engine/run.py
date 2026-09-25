@@ -41,6 +41,29 @@ def step(n, text):
     print(f"\n[{n}/5] {text}")
 
 
+def analyze(rows, key, config, auto_approve=True, write_copy=True, log=lambda n, t: None):
+    """The whole pipeline on a list of {copy, conversion_rate} rows. Used by the
+    command line and by the hosted web tool, so both run the same logic."""
+    log(1, f"Tagging {len(rows)} rows")
+    tagged = tag_rows(rows, config, key)
+    log(2, "Stats, round 1")
+    round1 = run_stats(tagged, config)
+    log(3, "Blind discovery (Claude sees the copy only, never the metric)")
+    found = discover(config, [r["copy"] for r in rows], auto_approve)
+    config2 = dict(config)
+    config2["attributes"] = config["attributes"] + found["approved"]
+    log(4, f"Tagging {len(found['approved'])} discovered attributes, stats round 2")
+    tagged2 = tag_rows(rows, config2, key)
+    round2 = run_stats(tagged2, config2)
+    made = {"winners": [], "new_copy": [], "ledger": []}
+    if write_copy:
+        log(5, "Writing new copy from the winning attributes")
+        made = generate(config2, round2, tagged2, METRIC, key)
+    return {"tagged": tagged, "round1": round1, "discovery": found,
+            "config_round2": config2, "tagged_round2": tagged2, "round2": round2,
+            "generated": made}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default=str(ROOT / "data/sample_ads.csv"))
@@ -60,32 +83,19 @@ def main():
             sys.exit(f"Input needs a '{col}' column.")
     OUT.mkdir(exist_ok=True)
 
-    step(1, f"Tagging {len(rows)} rows")
-    tagged = tag_rows(rows, config, key)
-    save_csv(tagged, OUT / "tags.csv")
+    result = analyze(rows, key, config, auto_approve=args.auto_approve, log=step)
+    save_csv(result["tagged"], OUT / "tags.csv")
+    write_results(result["round1"], OUT / "results.csv")
+    (OUT / "discovery_prompt.txt").write_text(result["discovery"]["prompt"])
+    (OUT / "discovery_reply.txt").write_text(result["discovery"]["reply"])
+    yaml.safe_dump(result["config_round2"], open(OUT / "attributes_round2.yaml", "w"),
+                   sort_keys=False)
+    save_csv(result["tagged_round2"], OUT / "tags_round2.csv")
+    write_results(result["round2"], OUT / "results_round2.csv")
+    json.dump(result["generated"]["ledger"], open(OUT / "ledger.json", "w"), indent=2)
 
-    step(2, "Stats, round 1")
-    round1 = run_stats(tagged, config)
-    write_results(round1, OUT / "results.csv")
-
-    step(3, "Blind discovery (Claude sees the copy only, never the metric)")
-    found = discover(config, [r["copy"] for r in rows], args.auto_approve)
-    (OUT / "discovery_prompt.txt").write_text(found["prompt"])
-    (OUT / "discovery_reply.txt").write_text(found["reply"])
-    config2 = dict(config)
-    config2["attributes"] = config["attributes"] + found["approved"]
-    yaml.safe_dump(config2, open(OUT / "attributes_round2.yaml", "w"), sort_keys=False)
-
-    step(4, f"Tagging {len(found['approved'])} discovered attributes, stats round 2")
-    tagged2 = tag_rows(rows, config2, key)
-    save_csv(tagged2, OUT / "tags_round2.csv")
-    round2 = run_stats(tagged2, config2)
-    write_results(round2, OUT / "results_round2.csv")
-
-    step(5, "Writing new copy from the winning attributes")
-    made = generate(config2, round2, tagged2, METRIC, key)
-    json.dump(made["ledger"], open(OUT / "ledger.json", "w"), indent=2)
-
+    found, made, round1, round2 = (result["discovery"], result["generated"],
+                                   result["round1"], result["round2"])
     write_report(round1, round2, found, made, len(rows), OUT / "report.md")
     print(f"\nDone. See {OUT / 'report.md'}")
 

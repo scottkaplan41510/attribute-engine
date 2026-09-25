@@ -34,6 +34,11 @@ def _headline_rows(results):
     return out
 
 
+def summary_lines(results):
+    """One plain-English line per attribute, without the leading bullet."""
+    return [_line(r)[2:] for r in _headline_rows(results)]
+
+
 def write_report(round1, round2, found, made, n, path):
     lines = ["# Attribute analysis", "", f"{n} rows analyzed. {CAVEAT}", "",
              "## Round 1: attributes you defined", ""]
