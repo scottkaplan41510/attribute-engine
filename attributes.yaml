@@ -1,0 +1,87 @@
+# Attribute definitions. Edit freely.
+# Demo: one code attribute (word count) and one Jev attribute (framing).
+# Discovery proposes up to 3 more from the copy alone.
+#   computed_by: jev  -> Jev answers the question (one judgment per question)
+#   computed_by: code -> measured in Python (counts, lengths, math)
+# Jev types:
+#   choice  -> picks one option; returns a weight for every option
+#   boolean -> returns the probability the answer is yes
+
+settings:
+  model: typesafe-ai/jev
+  low_confidence: 0.6   # answers below this are flagged, never dropped
+  concurrency: 1
+  test_option_weights: false  # also test each option weight as a sliding scale
+
+attributes:
+  - name: framing
+    computed_by: jev
+    type: choice
+    question: What does the copy lead with in its opening sentence?
+    options:
+      problem: leads with a pain point, risk, or frustration the reader has
+      solution: leads with the fix, the result, or what the reader gets
+      neither: introduces the product or company without a problem or a fix
+
+  - name: word_count
+    computed_by: code
+    type: number
+
+# Blind discovery: Claude reads the copy (never the metric) and proposes new
+# attributes. Approved ones are tagged by Jev in round 2.
+discovery:
+  model: anthropic/claude-sonnet-5
+  max_attributes: 5
+  sample_size: 100
+  prompt: |
+    You are helping analyze marketing copy. Below are {n} pieces of copy.
+    You are only seeing the text. You are not told how any of them performed.
+
+    We already measure these attributes:
+    {existing}
+
+    Propose up to {max_attributes} NEW attributes that vary across this copy and
+    that a marketer might plausibly expect to affect performance. Rules:
+    - Each attribute is one judgment a reader could make from the text alone.
+    - Do not repeat or rephrase an attribute we already measure.
+    - Use type "choice" (2 to 4 options, always including "neither" or "other")
+      or type "boolean" (yes/no).
+    - Give each option a one-line description.
+    - Put first the attributes that split the copy into the most even groups.
+
+    Return only YAML, a list in exactly this format:
+    - name: snake_case_name
+      type: choice
+      question: ...
+      options:
+        option_a: one-line description
+        neither: one-line description
+      why: one sentence on what varies in the copy
+    - name: snake_case_name
+      type: boolean
+      question: ...
+      "true": what counts as yes
+      "false": what counts as no
+      why: one sentence on what varies in the copy
+
+    Copy:
+    {copy}
+
+# Teaser: Claude writes new copy that uses the winning attributes.
+generation:
+  model: anthropic/claude-sonnet-5
+  count: 3
+  prompt: |
+    Write {count} new pieces of marketing copy in the same style and length as
+    the examples below.
+
+    Our analysis found these attributes correlate with higher {metric}:
+    {winners}
+
+    Every new piece must use all of those attributes. Do not copy an example
+    word for word. Do not use em dashes.
+
+    Examples of existing copy:
+    {examples}
+
+    Return only a JSON list of strings, one per piece of copy.

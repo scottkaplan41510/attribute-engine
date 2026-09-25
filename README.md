@@ -1,0 +1,102 @@
+# Attribute Engine
+
+Find out which attributes of your content correlate with performance.
+
+Give it a CSV with two columns, the content and a metric. It breaks each piece
+into attributes, tests which ones line up with the metric, asks an AI to
+propose attributes you did not think of, and writes new content from what won.
+
+This is an experiment, not a data science product. Everything it finds is a
+correlation, not a cause. Treat results as hypotheses to test.
+
+## How it works
+
+Three different jobs, three different tools:
+
+1. **Code** measures anything countable (word count). No reason to pay a model to count.
+2. **Jev** by [TypeSafe](https://typesafe.ai) answers the judgment calls you define
+   (for example, is this copy problem-framed or solution-framed). You write the
+   question and the options in `attributes.yaml`. Jev returns a pick and a weight
+   for every option.
+3. **Claude** proposes new attributes by reading the content only. It never sees
+   the metric, so it cannot pick attributes that happen to fit the numbers
+   (blind discovery). Jev then tags whatever you approve and the stats rerun.
+
+Then Claude writes new content that uses the winning attributes, and Jev checks
+that the new content actually has them.
+
+## Run it
+
+Requires Python 3.10+.
+
+```
+git clone https://github.com/scottkaplan41510/attribute-engine
+cd attribute-engine
+pip install -r requirements.txt
+cp .env.example .env        # add your AI_GATEWAY_API_KEY
+python src/generate_data.py # 30 sample ads with planted patterns
+python src/run.py
+```
+
+Your key comes from [Vercel AI Gateway](https://vercel.com/ai-gateway), which
+serves both Jev and Claude. Claude models need paid credits there. You can use an
+`ANTHROPIC_API_KEY` for Claude instead.
+
+To use your own data, pass a CSV with `copy` and `conversion_rate` columns:
+
+```
+python src/run.py --input my_ads.csv
+```
+
+`--auto-approve` keeps every discovered attribute without asking.
+
+## The sample data
+
+`src/generate_data.py` writes 30 synthetic B2B ads with two patterns planted on
+purpose, so you know the right answer before it runs:
+
+- Solution-framed ads convert about 4 points higher. You define this attribute.
+- Ads that mention a specific number convert about 4 points higher. Nobody tells
+  the tool to look for this. Blind discovery has to find it.
+
+Everything else is noise and should come out not significant.
+
+## Sample output
+
+```
+framing = solution correlates with a 3.9 point higher conversion rate than
+problem (8.5% vs 4.6%). Significant.
+
+Blind discovery proposed: cta_type, proof_point_type, second_sentence_focus,
+uses_specific_number, mentions_cpa_roas_metric
+
+uses_specific_number = yes correlates with a 3.1 point higher conversion rate
+than no (8.3% vs 5.3%). Significant.
+
+New copy: "Get every campaign back on budget. Your team saves 10 hours a week.
+Trusted by 2,400 teams. Start your free trial." (2/2 attributes confirmed)
+```
+
+Full results land in `output/`: `report.md`, per-row tags, stats tables, the
+exact discovery prompt and reply, and `ledger.json` (every piece of content with
+an ID, so new content can be scored once it runs).
+
+## The stats
+
+Each row is one data point. Groups are compared with a t-test (two groups) or
+one-way ANOVA (three or more). Numbers use Spearman correlation. P-values are
+corrected for testing many attributes at once (Benjamini-Hochberg, 0.05).
+Low-confidence labels are flagged, never dropped.
+
+A small sample only catches big effects. 30 rows is enough for a demo with
+planted patterns. For real content, more is better.
+
+## Edit it
+
+Everything configurable lives in `attributes.yaml`: the attributes, Jev's
+questions and options, the discovery and generation prompts, the models, and the
+low-confidence threshold.
+
+## License
+
+MIT
