@@ -74,13 +74,13 @@ def parse_attributes(text, max_attributes):
     return out
 
 
-def discover(config, texts, auto_approve=False):
+def discover(config, texts, auto_approve=False, api_key=None):
     """Ask Claude for new attributes from the copy alone; return what was approved."""
     d = config["discovery"]
     texts = random.Random(0).sample(texts, min(len(texts), d["sample_size"]))
     prompt = build_prompt(config, texts)
     reply, tokens_in, tokens_out = call_claude(
-        prompt, d["model"], os.environ.get("AI_GATEWAY_API_KEY"))
+        prompt, d["model"], api_key or os.environ.get("AI_GATEWAY_API_KEY"))
     proposed = parse_attributes(reply, d["max_attributes"])
     print(f"Claude proposed {len(proposed)} attributes "
           f"({tokens_in} in / {tokens_out} out tokens):\n")

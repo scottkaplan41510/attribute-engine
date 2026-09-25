@@ -49,7 +49,7 @@ def analyze(rows, key, config, auto_approve=True, write_copy=True, log=lambda n,
     log(2, "Stats, round 1")
     round1 = run_stats(tagged, config)
     log(3, "Blind discovery (Claude sees the copy only, never the metric)")
-    found = discover(config, [r["copy"] for r in rows], auto_approve)
+    found = discover(config, [r["copy"] for r in rows], auto_approve, api_key=key)
     config2 = dict(config)
     config2["attributes"] = config["attributes"] + found["approved"]
     log(4, f"Tagging {len(found['approved'])} discovered attributes, stats round 2")
