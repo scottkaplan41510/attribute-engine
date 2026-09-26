@@ -9,6 +9,9 @@
 
 settings:
   model: typesafe-ai/jev
+  # Which hosts to try, in order. Jev is served by TypeSafe and by DigitalOcean
+  # behind Vercel AI Gateway; if one is overloaded the gateway moves to the next.
+  provider_order: [typesafe-ai, digitalocean]
   low_confidence: 0.6   # answers below this are flagged, never dropped
   concurrency: 10
   test_option_weights: false  # also test each option weight as a sliding scale

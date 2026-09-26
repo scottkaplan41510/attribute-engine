@@ -49,8 +49,11 @@ def build_questions(attrs):
     return questions
 
 
-def build_request(text, questions, model):
-    return {"model": model, "state": text, "questions": questions}
+def build_request(text, questions, model, provider_order=None):
+    request = {"model": model, "state": text, "questions": questions}
+    if provider_order:
+        request["providerOptions"] = {"gateway": {"order": list(provider_order)}}
+    return request
 
 
 def code_attributes(text):
@@ -113,7 +116,8 @@ def tag_rows(rows, config, api_key):
 
     def work(row):
         response, seconds = call_jev(
-            build_request(row["copy"], questions, settings["model"]), api_key)
+            build_request(row["copy"], questions, settings["model"],
+                          settings.get("provider_order")), api_key)
         cost = response.get("providerMetadata", {}).get("gateway", {})
         usage = response.get("usage", {})
         return {

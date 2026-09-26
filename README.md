@@ -91,6 +91,13 @@ Low-confidence labels are flagged, never dropped.
 A small sample only catches big effects. 30 rows is enough for a demo with
 planted patterns. For real content, more is better.
 
+## Use it from Claude Code
+
+The repo includes a Claude Code skill at `.claude/skills/attribute-analysis/`.
+Open the repo in Claude Code and ask "run the attribute analysis on my CSV".
+Claude checks your file, shows you the attributes, runs the engine, and
+explains the results in plain English.
+
 ## Edit it
 
 Everything configurable lives in `src/attribute_engine/attributes.yaml`: the attributes, Jev's
