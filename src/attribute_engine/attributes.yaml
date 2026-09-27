@@ -108,3 +108,27 @@ generation:
     {examples}
 
     Return only a JSON list of strings, one per piece of copy.
+
+# Part 3: label the same rows with Jev and with Claude models, and compare cost,
+# time and accuracy against the answer key in data/true_labels.csv.
+compare:
+  claude_models: [anthropic/claude-haiku-4.5, anthropic/claude-sonnet-5]
+  # List prices in USD per million tokens (input, output), from Vercel AI Gateway.
+  prices_per_million:
+    anthropic/claude-haiku-4.5: [1.0, 5.0]
+    anthropic/claude-sonnet-5: [2.0, 10.0]
+  attributes:
+    - name: framing
+      computed_by: jev
+      type: choice
+      question: What does the copy lead with in its opening sentence?
+      options:
+        problem: leads with a pain point, risk, or frustration the reader has
+        solution: leads with the fix, the result, or what the reader gets
+        neither: introduces the product or company without a problem or a fix
+    - name: mentions_number
+      computed_by: jev
+      type: boolean
+      question: Does the copy mention a specific number?
+      "true": includes a specific figure, like 5 minutes or 2,400 teams
+      "false": no specific figures, only words like growing or mere

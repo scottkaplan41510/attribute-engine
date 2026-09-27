@@ -122,6 +122,29 @@ It compares generated copy against the control and the originals. If the
 generated copy wins, the approach held up on real results. If not, you learned
 that too. Either way, the log keeps the history so every round feeds the next.
 
+## Part 3: Jev vs Claude on cost, speed and accuracy
+
+The same 30 sample ads, the same two questions (framing, and whether it mentions
+a specific number), labeled by each model:
+
+```
+attribute-engine-compare
+```
+
+One run, September 2026:
+
+| Model | Cost for 30 ads | Time | Framing | Mentions a number |
+|---|---|---|---|---|
+| Jev (TypeSafe, via OpenRouter) | $0.0006 | 2.4s | 100% | 100% |
+| Claude Haiku 4.5 | $0.0086 | 10.5s | 87% | 100% |
+| Claude Sonnet 5 | $0.0277 | 7.7s | 87% | 100% |
+
+Read it with care: 30 rows, one run, list prices, and a prompt not tuned for any
+model. Every framing miss was the same borderline opener ("Fix overspending on
+every campaign."), which names both the problem and the fix. Your data will vary,
+so run it on your own copy. Per-row answers land in
+`output/model_predictions.csv`.
+
 ## The stats
 
 Each row is one data point. Groups are compared with a t-test (two groups) or
