@@ -4,10 +4,22 @@ Find out which attributes of your content correlate with performance.
 
 Give it a CSV with two columns, the content and a metric. It breaks each piece
 into attributes, tests which ones line up with the metric, asks an AI to
-propose attributes you did not think of, and writes new content from what won.
+propose attributes you did not think of. An experimental last step writes new
+content from what won.
 
 This is an experiment, not a data science product. Everything it finds is a
 correlation, not a cause. Treat results as hypotheses to test.
+
+## Make it yours
+
+This is a starting point, not a finished product. Take it further.
+
+- **Any text:** ads, emails, subject lines, landing pages, product descriptions.
+- **Any metric:** conversion rate, click rate, open rate, revenue per visit.
+- **Your own attributes:** add questions and options in
+  `src/attribute_engine/attributes.yaml`. No code changes needed.
+- **Other models:** swap the model names in the same file.
+- **Fork it:** build on it, wire it into your own reporting, make it better.
 
 ## How it works
 
@@ -22,8 +34,9 @@ Three different jobs, three different tools:
    the metric, so it cannot pick attributes that happen to fit the numbers
    (blind discovery). Jev then tags whatever you approve and the stats rerun.
 
-Then Claude writes new content that uses the winning attributes, and Jev checks
-that the new content actually has them.
+Preview of Part 2 (experimental): Claude writes new content that uses the
+winning attributes, and Jev checks that the new content actually has them.
+Whether that content performs better is the next experiment.
 
 ## Run it
 
@@ -50,7 +63,7 @@ shared Jev capacity was rate-limited for days, so OpenRouter is the default.
 To use your own data, pass a CSV with `copy` and `conversion_rate` columns. The metric is a placeholder: put any number in that column (click rate, revenue per visit, open rate).
 
 ```
-attribute-engine --input my_ads.csv
+attribute-engine --input my_content.csv
 ```
 
 `--auto-approve` keeps every discovered attribute without asking.
