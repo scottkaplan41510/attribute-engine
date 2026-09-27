@@ -52,10 +52,11 @@ def write_report(round1, round2, found, made, n, path):
         lines += ["", "## New copy from the winning attributes", "",
                   "Written by Claude to use: "
                   + ", ".join(f"{w['name']} = {w['value']}" for w in made["winners"]) + ".",
-                  "Checked by Jev, and saved to ledger.json with an ID so it can be "
-                  "scored once it runs.", ""]
+                  "Plus a control that deliberately uses the losing values. Jev checked both.",
+                  "Everything is in creative_log.csv with an ID. Fill in the metric once it",
+                  "runs, then run attribute-engine-validate to see if the winners held up.", ""]
         for rec in made["ledger"]:
-            if rec["source"] == "generated":
+            if rec["source"] in ("generated", "control"):
                 lines.append(f"- {rec['id']}: \"{rec['copy']}\" "
-                             f"({rec['targets_met']}/{rec['targets_total']} attributes confirmed)")
+                             f"({rec['matches_winners']}/{rec['winners_total']} winning attributes)")
     path.write_text("\n".join(lines) + "\n")

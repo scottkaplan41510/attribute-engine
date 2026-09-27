@@ -99,6 +99,29 @@ Full results land in `output/`: `report.md`, per-row tags, stats tables, the
 exact discovery prompt and reply, and `ledger.json` (every piece of content with
 an ID, so new content can be scored once it runs).
 
+## Part 2: write copy from what wins, then prove it
+
+The last step of `attribute-engine` writes new copy from the winners and a
+control set from the losers:
+
+- **Generated:** new copy that uses every winning attribute.
+- **Control:** new copy that deliberately uses the losing values.
+- Jev labels both, so you can see each piece really carries what it should.
+
+Everything lands in `output/creative_log.csv`, one row per piece of copy, with
+an ID, where it came from (original, generated or control), its attributes, and
+an empty metric column.
+
+Run the new copy, fill in the metric, then:
+
+```
+attribute-engine-validate
+```
+
+It compares generated copy against the control and the originals. If the
+generated copy wins, the approach held up on real results. If not, you learned
+that too. Either way, the log keeps the history so every round feeds the next.
+
 ## The stats
 
 Each row is one data point. Groups are compared with a t-test (two groups) or

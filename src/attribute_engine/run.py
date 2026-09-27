@@ -20,7 +20,7 @@ import yaml
 from dotenv import load_dotenv
 
 from .discover import discover
-from .generate import generate
+from .generate import generate, write_log
 from .report import write_report
 from .stats import METRIC, run as run_stats, write as write_results
 from .tag import tag_rows
@@ -55,7 +55,7 @@ def analyze(rows, key, config, auto_approve=True, write_copy=True, log=lambda n,
     log(4, f"Tagging {len(found['approved'])} discovered attributes, stats round 2")
     tagged2 = tag_rows(rows, config2, key)
     round2 = run_stats(tagged2, config2)
-    made = {"winners": [], "new_copy": [], "ledger": []}
+    made = {"winners": [], "new_copy": [], "controls": [], "ledger": []}
     if write_copy:
         log(5, "Writing new copy from the winning attributes")
         made = generate(config2, round2, tagged2, METRIC, key)
@@ -93,6 +93,8 @@ def main():
     save_csv(result["tagged_round2"], OUT / "tags_round2.csv")
     write_results(result["round2"], OUT / "results_round2.csv")
     json.dump(result["generated"]["ledger"], open(OUT / "ledger.json", "w"), indent=2)
+    if result["generated"]["ledger"]:
+        write_log(result["generated"]["ledger"], METRIC, OUT / "creative_log.csv")
 
     found, made, round1, round2 = (result["discovery"], result["generated"],
                                    result["round1"], result["round2"])

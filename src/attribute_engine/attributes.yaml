@@ -92,3 +92,19 @@ generation:
     {examples}
 
     Return only a JSON list of strings, one per piece of copy.
+  # The control set: copy that deliberately uses the losing values, so you can
+  # check later whether the winners really beat it.
+  control_count: 2
+  control_prompt: |
+    Write {count} new pieces of marketing copy in the same style and length as
+    the examples below. This is a control for an experiment.
+
+    Every new piece must use all of these attributes:
+    {winners}
+
+    Do not copy an example word for word. Do not use em dashes.
+
+    Examples of existing copy:
+    {examples}
+
+    Return only a JSON list of strings, one per piece of copy.

@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 attribute-engine = "attribute_engine.run:main"
+attribute-engine-validate = "attribute_engine.validate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
