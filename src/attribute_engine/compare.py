@@ -96,7 +96,11 @@ def main():
     # Claude models
     for model in cmp["claude_models"]:
         start = time.perf_counter()
-        out = label_with_claude(rows, attrs, model, gateway_key, conc)
+        try:
+            out = label_with_claude(rows, attrs, model, gateway_key, conc)
+        except Exception as e:  # one unavailable model shouldn't sink the comparison
+            print(f"  skipped {model}: {str(e)[:100]}")
+            continue
         seconds = time.perf_counter() - start
         price_in, price_out = cmp["prices_per_million"][model]
         cost = sum(i * price_in + o * price_out for _, i, o in out) / 1_000_000

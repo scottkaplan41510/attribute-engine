@@ -135,12 +135,16 @@ One run, September 2026:
 
 | Model | Cost for 30 ads | Time | Framing | Mentions a number |
 |---|---|---|---|---|
-| Jev (TypeSafe, via OpenRouter) | $0.0006 | 2.4s | 100% | 100% |
-| Claude Haiku 4.5 | $0.0086 | 10.5s | 87% | 100% |
-| Claude Sonnet 5 | $0.0277 | 7.7s | 87% | 100% |
+| Jev (TypeSafe, via OpenRouter) | $0.0006 | 1.2s | 100% | 100% |
+| Claude Haiku 4.5 | $0.0084 | 3.4s | 87% | 97% |
+| Claude Sonnet 5 | $0.0274 | 5.9s | 87% | 93% |
+| Claude Opus 5.5 | $0.0771 | 9.3s | 100% | 97% |
+
+Projected to 10,000 ads at the same rates: Jev about $0.19, Haiku $2.81,
+Sonnet $9.15, Opus $25.70.
 
 Read it with care: 30 rows, one run, list prices, and a prompt not tuned for any
-model. Every framing miss was the same borderline opener ("Fix overspending on
+model. Times vary from run to run. Most framing misses were the same borderline opener ("Fix overspending on
 every campaign."), which names both the problem and the fix. Your data will vary,
 so run it on your own copy. Per-row answers land in
 `output/model_predictions.csv`.
