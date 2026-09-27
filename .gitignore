@@ -5,3 +5,4 @@ __pycache__/
 local/
 output/
 data/my_examples.csv
+*.egg-info/
