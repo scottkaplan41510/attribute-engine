@@ -38,11 +38,16 @@ python -m attribute_engine.generate_data    # 30 sample ads with planted pattern
 attribute-engine
 ```
 
-Your key comes from [Vercel AI Gateway](https://vercel.com/ai-gateway), which
-serves both Jev and Claude. Claude models need paid credits there. You can use an
-`ANTHROPIC_API_KEY` for Claude instead.
+You need two keys in `.env`:
 
-To use your own data, pass a CSV with `copy` and `conversion_rate` columns:
+- `OPENROUTER_API_KEY` from [OpenRouter](https://openrouter.ai), for Jev. About $0.0005 to label 30 rows.
+- `AI_GATEWAY_API_KEY` from [Vercel AI Gateway](https://vercel.com/ai-gateway), for Claude (discovery and new copy). Claude models need paid credits there.
+
+Jev is also served by Vercel AI Gateway. Set `jev_provider: vercel` in
+`attributes.yaml` to use one key for everything. While building this, Vercel's
+shared Jev capacity was rate-limited for days, so OpenRouter is the default.
+
+To use your own data, pass a CSV with `copy` and `conversion_rate` columns. The metric is a placeholder: put any number in that column (click rate, revenue per visit, open rate).
 
 ```
 attribute-engine --input my_ads.csv
