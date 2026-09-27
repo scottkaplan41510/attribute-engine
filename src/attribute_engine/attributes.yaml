@@ -8,6 +8,10 @@
 #   boolean -> returns the probability the answer is yes
 
 settings:
+  # Where Jev is called: openrouter (OPENROUTER_API_KEY) or vercel
+  # (AI_GATEWAY_API_KEY). Claude always goes through the Vercel key.
+  jev_provider: openrouter
+  openrouter_model: typesafe/jev-1.13
   model: typesafe-ai/jev
   # Which hosts to try, in order. Jev is served by TypeSafe and by DigitalOcean
   # behind Vercel AI Gateway; if one is overloaded the gateway moves to the next.

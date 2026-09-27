@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 ROOT = Path.cwd()  # data/, output/ and .env are read from where you run it
 CONFIG = Path(__file__).resolve().parent / "attributes.yaml"
 GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/evaluate"
+OPENROUTER_URL = "https://openrouter.ai/api/alpha/decisions"
 MAX_ATTEMPTS = 4  # with 1s, 2s, 4s waits: gives up after ~7s of retrying
 
 
@@ -36,11 +37,13 @@ def jev_attributes(config):
     return [a for a in config["attributes"] if a["computed_by"] == "jev"]
 
 
-def build_questions(attrs):
+def build_questions(attrs, provider="vercel"):
     """Translate attributes.yaml into Jev's question schema."""
+    yes_no = "noul" if provider == "openrouter" else "boolean"
     questions = {}
     for a in attrs:
-        q = {"type": a["type"], "instructions": a["question"]}
+        q = {"type": yes_no if a["type"] == "boolean" else a["type"],
+             "instructions": a["question"]}
         if a["type"] == "choice":
             q["criteria"] = dict(a["options"])
         elif a["type"] == "boolean":
@@ -51,7 +54,7 @@ def build_questions(attrs):
 
 def build_request(text, questions, model, provider_order=None):
     request = {"model": model, "state": text, "questions": questions}
-    if provider_order:
+    if provider_order and not model.startswith("typesafe/"):
         request["providerOptions"] = {"gateway": {"order": list(provider_order)}}
     return request
 
@@ -66,14 +69,14 @@ class JevBusyError(RuntimeError):
     """Jev (or the gateway in front of it) kept saying it was overloaded."""
 
 
-def call_jev(payload, api_key):
+def call_jev(payload, api_key, url=GATEWAY_URL):
     """One Jev call. Retries transient failures, then raises."""
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     for attempt in range(1, MAX_ATTEMPTS + 1):
         started = time.perf_counter()
         r = None
         try:
-            r = requests.post(GATEWAY_URL, headers=headers, json=payload, timeout=20)
+            r = requests.post(url, headers=headers, json=payload, timeout=20)
             seconds = time.perf_counter() - started
             if r.status_code == 200:
                 return r.json(), seconds
@@ -100,7 +103,7 @@ def parse_answers(response, attrs, low_confidence):
             out[f"jev_{name}_weights"] = json.dumps(weights)
             conf = ans.get("confidence", max(weights.values()))
         else:  # boolean: probability that the answer is yes
-            p = ans["probability"]
+            p = ans.get("probability", ans.get("noul"))
             out[f"jev_{name}"] = "yes" if p >= 0.5 else "no"
             out[f"jev_{name}_p"] = round(p, 4)
             conf = max(p, 1 - p)  # Jev returns no separate confidence for booleans
@@ -109,25 +112,36 @@ def parse_answers(response, attrs, low_confidence):
     return out
 
 
+def jev_route(settings, api_key):
+    """Where Jev calls go: OpenRouter or Vercel AI Gateway (attributes.yaml)."""
+    if settings.get("jev_provider") == "openrouter":
+        key = os.environ.get("OPENROUTER_API_KEY")
+        if not key:
+            raise RuntimeError("Set OPENROUTER_API_KEY in .env (see .env.example).")
+        return "openrouter", OPENROUTER_URL, settings["openrouter_model"], key
+    return "vercel", GATEWAY_URL, settings["model"], api_key
+
+
 def tag_rows(rows, config, api_key):
     attrs = jev_attributes(config)
     settings = config["settings"]
-    questions = build_questions(attrs)
+    provider, url, model, key = jev_route(settings, api_key)
+    questions = build_questions(attrs, provider)
 
     def work(row):
         response, seconds = call_jev(
-            build_request(row["copy"], questions, settings["model"],
-                          settings.get("provider_order")), api_key)
+            build_request(row["copy"], questions, model, settings.get("provider_order")),
+            key, url)
         cost = response.get("providerMetadata", {}).get("gateway", {})
         usage = response.get("usage", {})
         return {
             **row,
             **code_attributes(row["copy"]),
             **parse_answers(response, attrs, settings["low_confidence"]),
-            "jev_input_tokens": usage.get("inputTokens", 0),
-            "jev_output_tokens": usage.get("outputTokens", 0),
-            "jev_market_cost_usd": float(cost.get("marketCost", 0) or 0),
-            "jev_billed_cost_usd": float(cost.get("cost", 0) or 0),
+            "jev_input_tokens": usage.get("inputTokens", usage.get("input_tokens", 0)),
+            "jev_output_tokens": usage.get("outputTokens", usage.get("output_tokens", 0)),
+            "jev_market_cost_usd": float(cost.get("marketCost", usage.get("cost", 0)) or 0),
+            "jev_billed_cost_usd": float(cost.get("cost", usage.get("cost", 0)) or 0),
             "jev_seconds": round(seconds, 3),
         }
 
