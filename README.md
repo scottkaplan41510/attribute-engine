@@ -2,24 +2,32 @@
 
 Find out which attributes of your content correlate with performance.
 
-Give it a CSV with two columns, the content and a metric. It breaks each piece
-into attributes, tests which ones line up with the metric, asks an AI to
-propose attributes you did not think of. An experimental last step writes new
-content from what won.
+Give it content and a metric. It breaks each piece into attributes, tests
+which ones line up with the metric, and asks an AI to propose attributes you
+did not think of. Then it writes new content from what won.
+
+Try it free in the browser, no signup:
+[redavio.com/tools/attribute-engine](https://www.redavio.com/tools/attribute-engine)
 
 This is an experiment, not a data science product. Everything it finds is a
 correlation, not a cause. Treat results as hypotheses to test.
 
 ## Make it yours
 
-This is a starting point, not a finished product. Take it further.
+This is a starting point, not a finished product. Go nuts with it.
 
-- **Any text:** ads, emails, subject lines, landing pages, product descriptions.
-- **Any metric:** conversion rate, click rate, open rate, revenue per visit.
+- **Any input:** pull straight from a Google Ads export, HubSpot, a database
+  table, JSON, or an API. If it has text and a number, it works. Claude Code
+  will wire up the connection for you.
+- **Any text:** ads, emails, subject lines, landing pages, product
+  descriptions, sales call snippets, app store listings, social posts.
+- **Any metric:** conversion rate, click rate, open rate, reply rate, revenue
+  per visit, ROAS.
 - **Your own attributes:** add questions and options in
   `src/attribute_engine/attributes.yaml`. No code changes needed.
 - **Other models:** swap the model names in the same file.
-- **Fork it:** build on it, wire it into your own reporting, make it better.
+- **Fork it:** wire it into your reporting, schedule it, bolt on new steps,
+  make it better. The Claude Code skills in this repo do most of the lifting.
 
 ## How it works
 
@@ -46,7 +54,7 @@ Requires Python 3.10+.
 git clone https://github.com/scottkaplan41510/attribute-engine
 cd attribute-engine
 pip install -e .
-cp .env.example .env                        # add your AI_GATEWAY_API_KEY
+cp .env.example .env                        # add your keys (below)
 python -m attribute_engine.generate_data    # 30 sample ads with planted patterns
 attribute-engine
 ```
@@ -60,10 +68,10 @@ Jev is also served by Vercel AI Gateway. Set `jev_provider: vercel` in
 `attributes.yaml` to use one key for everything. While building this, Vercel's
 shared Jev capacity was rate-limited for days, so OpenRouter is the default.
 
-To use your own data, pass a CSV with `copy` and `conversion_rate` columns. The metric is a placeholder: put any number in that column (click rate, revenue per visit, open rate).
+To use your own data, pass rows with a `copy` column (the text) and a `conversion_rate` column (the metric). The metric name is a placeholder: put any number there (click rate, revenue per visit, open rate).
 
 ```
-attribute-engine --input my_content.csv
+attribute-engine --input my_content.csv     # or have Claude Code point it at your source
 ```
 
 `--auto-approve` keeps every discovered attribute without asking.
@@ -161,10 +169,17 @@ planted patterns. For real content, more is better.
 
 ## Use it from Claude Code
 
-The repo includes a Claude Code skill at `.claude/skills/attribute-analysis/`.
-Open the repo in Claude Code and ask "run the attribute analysis on my CSV".
-Claude checks your file, shows you the attributes, runs the engine, and
-explains the results in plain English.
+The repo ships with two Claude Code skills in `.claude/skills/`:
+
+- **attribute-analysis:** ask "run the attribute analysis on my data". Claude
+  checks your file, shows you the attributes, runs the engine, and explains
+  the results in plain English.
+- **write-and-log:** ask it to write new copy from the winners. It writes the
+  copy and the controls, logs everything, and later checks whether the new
+  copy performed better.
+
+Claude Code is also the fastest way to customize it. Ask it to read from your
+source, add an attribute, or change a step.
 
 ## Edit it
 
