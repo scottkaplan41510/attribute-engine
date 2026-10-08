@@ -88,6 +88,78 @@ def run(rows, config):
     return results
 
 
+def scorecard(rows, config):
+    """One row per attribute, in plain terms.
+
+    Choice and yes/no attributes: the value whose rows have the highest mean
+    metric (the best value), compared with every other row. The correlation is
+    Pearson between "has the best value" (1/0) and the metric (point-biserial).
+    The p-value is NOT for that comparison: picking the best of several values
+    and then testing it would make noise look significant. It comes from the
+    test across all of the attribute's values (t-test or ANOVA, as in run()).
+    Counted attributes (word count): Spearman, with no best value.
+    P-values are corrected across the scorecard (Benjamini-Hochberg).
+    """
+    y = np.array([float(r[METRIC]) for r in rows])
+    out = []
+    for a in config["attributes"]:
+        n = a["name"]
+        row = {"attribute": n, "best_value": None, "n_with": None, "mean_with": None,
+               "n_rest": None, "mean_rest": None, "lift": None, "lift_pct": None}
+        if a["computed_by"] == "code":
+            x = np.array([float(r[n]) for r in rows])
+            if np.std(x) == 0:
+                continue
+            rho, p = stats.spearmanr(x, y)
+            out.append({**row, "kind": "number", "correlation": float(rho), "p_value": float(p)})
+            continue
+        labels = np.array([r[f"jev_{n}"] for r in rows])
+        # a value needs at least 2 rows on each side to be compared
+        candidates = [v for v in set(labels)
+                      if 2 <= (labels == v).sum() <= len(labels) - 2]
+        if not candidates:
+            continue
+        best = max(candidates, key=lambda v: y[labels == v].mean())
+        has = labels == best
+        r_pb = stats.pearsonr(has.astype(float), y)[0]
+        p = group_test(n, labels, y)["p_value"]
+        mean_with, mean_rest = float(y[has].mean()), float(y[~has].mean())
+        out.append({**row, "kind": "group", "best_value": str(best),
+                    "n_with": int(has.sum()), "mean_with": mean_with,
+                    "n_rest": int((~has).sum()), "mean_rest": mean_rest,
+                    "lift": mean_with - mean_rest,
+                    "lift_pct": (mean_with - mean_rest) / mean_rest if mean_rest else None,
+                    "correlation": float(r_pb), "p_value": float(p)})
+    if out:
+        for r, adj in zip(out, benjamini_hochberg([r["p_value"] for r in out])):
+            r["p_adjusted"] = float(adj)
+            r["significant"] = bool(adj < ALPHA)
+    return sorted(out, key=lambda r: abs(r["correlation"]), reverse=True)
+
+
+def write_scorecard(card, path):
+    fields = ["attribute", "best_value", "n_with", "mean_with", "n_rest", "mean_rest",
+              "lift", "lift_pct", "correlation", "p_value", "p_adjusted", "significant"]
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(card)
+
+
+def print_scorecard(card):
+    def pct(v):
+        return "" if v is None else f"{100 * v:.1f}%"
+    print(f"  {'ATTRIBUTE':28} {'BEST VALUE':16} {'WITH IT':>13} {'THE REST':>13} "
+          f"{'LIFT':>9} {'CORR':>6} {'ADJ P':>8}  SIGNIFICANT")
+    for r in card:
+        with_it = f"{pct(r['mean_with'])} ({r['n_with']})" if r["kind"] == "group" else ""
+        rest = f"{pct(r['mean_rest'])} ({r['n_rest']})" if r["kind"] == "group" else ""
+        lift = f"{100 * r['lift']:+.1f} pts" if r["lift"] is not None else ""
+        print(f"  {r['attribute']:28} {r['best_value'] or '':16} {with_it:>13} {rest:>13} "
+              f"{lift:>9} {r['correlation']:+6.2f} {r['p_adjusted']:8.2g}  "
+              f"{'yes' if r['significant'] else 'no'}")
+
+
 def write(results, path):
     with open(path, "w", newline="") as f:
         w = csv.writer(f)

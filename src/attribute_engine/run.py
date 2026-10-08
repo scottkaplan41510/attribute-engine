@@ -22,7 +22,8 @@ from dotenv import load_dotenv
 from .discover import discover
 from .generate import generate, write_log
 from .report import write_report
-from .stats import METRIC, run as run_stats, write as write_results
+from .stats import (METRIC, print_scorecard, run as run_stats, scorecard,
+                    write as write_results, write_scorecard)
 from .tag import tag_rows
 
 ROOT = Path.cwd()  # data/, output/ and .env are read from where you run it
@@ -99,6 +100,10 @@ def main():
     found, made, round1, round2 = (result["discovery"], result["generated"],
                                    result["round1"], result["round2"])
     write_report(round1, round2, found, made, len(rows), OUT / "report.md")
+    card = scorecard(result["tagged_round2"], result["config_round2"])
+    write_scorecard(card, OUT / "scorecard.csv")
+    print("\nScorecard: each attribute's best value vs every other row\n")
+    print_scorecard(card)
     print(f"\nDone. See {OUT / 'report.md'}")
 
 
