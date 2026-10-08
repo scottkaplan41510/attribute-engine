@@ -104,7 +104,7 @@ Trusted by 2,400 teams. Start your free trial." (2/2 attributes confirmed)
 ```
 
 Full results land in `output/`: `report.md`, `scorecard.csv` (each attribute
-each attribute value vs every other row: averages, lift, correlation, adjusted p-value), per-row tags, stats tables, the
+value vs every other row: averages, lift, correlation, adjusted p-value), per-row tags, stats tables, the
 exact discovery prompt and reply, and `ledger.json` (every piece of content with
 an ID, so new content can be scored once it runs).
 
