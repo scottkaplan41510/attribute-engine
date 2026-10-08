@@ -104,7 +104,9 @@ def scorecard(rows, config):
     values, adjusted across attributes) AND the value must differ from the rest
     (adjusted across values). The p-value reported is the larger of the two,
     so it always agrees with "significant". Benjamini-Hochberg throughout.
-    Rows are grouped by attribute, strongest attribute first.
+    Nothing is dropped: an attribute where every row got the same value, or
+    with too few rows per value to test, still gets rows, with a "note" and no
+    p-value. Rows are grouped by attribute, strongest attribute first.
     """
     y = np.array([float(r[METRIC]) for r in rows])
     out, attr_p = [], {}
@@ -121,30 +123,40 @@ def scorecard(rows, config):
             out.append({**empty, "kind": "number", "correlation": float(rho), "p_value": float(p)})
             continue
         labels = np.array([r[f"jev_{n}"] for r in rows])
-        overall = group_test(n, labels, y)
-        if overall is None:
+        values = sorted(set(labels))
+        if len(values) == 1:  # every row got the same value: nothing to compare
+            out.append({**empty, "kind": "group", "value": str(values[0]),
+                        "n_with": len(labels), "mean_with": float(y.mean()),
+                        "correlation": None, "p_value": None,
+                        "note": f"Every row was labeled {values[0]}, so there is nothing to compare."})
             continue
-        attr_p[n] = overall["p_value"]
-        for v in sorted(set(labels)):
+        overall = group_test(n, labels, y)
+        if overall is not None:
+            attr_p[n] = overall["p_value"]
+        for v in values:
             has = labels == v
-            if not 2 <= has.sum() <= len(labels) - 2:
-                continue
             r_pb, p = stats.pearsonr(has.astype(float), y)
             mean_with, mean_rest = float(y[has].mean()), float(y[~has].mean())
-            out.append({**empty, "kind": "group", "value": str(v),
-                        "n_with": int(has.sum()), "mean_with": mean_with,
-                        "n_rest": int((~has).sum()), "mean_rest": mean_rest,
-                        "lift": mean_with - mean_rest,
-                        "lift_pct": (mean_with - mean_rest) / mean_rest if mean_rest else None,
-                        "correlation": float(r_pb), "p_value": float(p)})
+            row = {**empty, "kind": "group", "value": str(v),
+                   "n_with": int(has.sum()), "mean_with": mean_with,
+                   "n_rest": int((~has).sum()), "mean_rest": mean_rest,
+                   "lift": mean_with - mean_rest,
+                   "lift_pct": (mean_with - mean_rest) / mean_rest if mean_rest else None,
+                   "correlation": float(r_pb), "p_value": float(p)}
+            if overall is None:
+                row["note"] = "Too few rows per value to test for significance."
+            out.append(row)
     if not out:
         return out
-    attr_adj = dict(zip(attr_p, benjamini_hochberg(list(attr_p.values()))))
-    groups = [r for r in out if r["kind"] == "group"]
-    value_adj = benjamini_hochberg([r["p_value"] for r in groups]) if groups else []
-    for r, adj in zip(groups, value_adj):
+    attr_adj = dict(zip(attr_p, benjamini_hochberg(list(attr_p.values())))) if attr_p else {}
+    tested = [r for r in out if r["kind"] == "group" and r["attribute"] in attr_adj]
+    value_adj = benjamini_hochberg([r["p_value"] for r in tested]) if tested else []
+    for r, adj in zip(tested, value_adj):
         r["p_value_adjusted"] = float(adj)
     for r in out:
+        if r["attribute"] not in attr_adj:
+            r["p_adjusted"], r["significant"] = None, False
+            continue
         p = attr_adj[r["attribute"]]
         if r["kind"] == "group":
             p = max(p, r["p_value_adjusted"])
@@ -152,13 +164,14 @@ def scorecard(rows, config):
         r["significant"] = bool(p < ALPHA)
     strength = {}
     for r in out:
-        strength[r["attribute"]] = max(strength.get(r["attribute"], 0), abs(r["correlation"]))
-    return sorted(out, key=lambda r: (-strength[r["attribute"]], r["attribute"], -r["correlation"]))
+        strength[r["attribute"]] = max(strength.get(r["attribute"], 0), abs(r["correlation"] or 0))
+    return sorted(out, key=lambda r: (-strength[r["attribute"]], r["attribute"],
+                                      -(r["correlation"] or 0)))
 
 
 def write_scorecard(card, path):
     fields = ["attribute", "value", "n_with", "mean_with", "n_rest", "mean_rest",
-              "lift", "lift_pct", "correlation", "p_value", "p_adjusted", "significant"]
+              "lift", "lift_pct", "correlation", "p_value", "p_adjusted", "significant", "note"]
     with open(path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
         w.writeheader()
@@ -172,11 +185,13 @@ def print_scorecard(card):
           f"{'LIFT':>9} {'CORR':>6} {'ADJ P':>8}  SIGNIFICANT")
     for r in card:
         with_it = f"{pct(r['mean_with'])} ({r['n_with']})" if r["kind"] == "group" else ""
-        rest = f"{pct(r['mean_rest'])} ({r['n_rest']})" if r["kind"] == "group" else ""
+        rest = f"{pct(r['mean_rest'])} ({r['n_rest']})" if r["n_rest"] else ""
         lift = f"{100 * r['lift']:+.1f} pts" if r["lift"] is not None else ""
+        corr = f"{r['correlation']:+6.2f}" if r["correlation"] is not None else f"{'n/a':>6}"
+        padj = f"{r['p_adjusted']:8.2g}" if r["p_adjusted"] is not None else f"{'n/a':>8}"
         print(f"  {r['attribute']:28} {r['value'] or '':16} {with_it:>13} {rest:>13} "
-              f"{lift:>9} {r['correlation']:+6.2f} {r['p_adjusted']:8.2g}  "
-              f"{'yes' if r['significant'] else 'no'}")
+              f"{lift:>9} {corr} {padj}  {'yes' if r['significant'] else 'no'}"
+              + (f"  ({r['note']})" if r.get("note") else ""))
 
 
 def write(results, path):
