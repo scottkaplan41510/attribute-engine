@@ -102,7 +102,7 @@ def main():
     write_report(round1, round2, found, made, len(rows), OUT / "report.md")
     card = scorecard(result["tagged_round2"], result["config_round2"])
     write_scorecard(card, OUT / "scorecard.csv")
-    print("\nScorecard: each attribute's best value vs every other row\n")
+    print("\nScorecard: each attribute value vs every other row\n")
     print_scorecard(card)
     print(f"\nDone. See {OUT / 'report.md'}")
 
