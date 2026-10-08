@@ -76,6 +76,19 @@ attribute-engine --input my_content.csv     # or have Claude Code point it at yo
 
 `--auto-approve` keeps every discovered attribute without asking.
 
+## Tests
+
+The stats are checked offline against a real labeled run, no API keys needed:
+
+```
+pip install -e ".[test]"
+pytest
+```
+
+They confirm the scorecard finds the two planted patterns and nothing else,
+that picking the best value can't make noise look significant, and that no
+attribute ever disappears from the results.
+
 ## The sample data
 
 `attribute_engine.generate_data` writes 30 synthetic B2B ads with two patterns planted on
