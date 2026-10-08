@@ -116,6 +116,28 @@ New copy: "Get every campaign back on budget. Your team saves 10 hours a week.
 Trusted by 2,400 teams. Start your free trial." (2/2 attributes confirmed)
 ```
 
+The scorecard shows every attribute value against every other row, so you
+can see what worked, what didn't, and how sure to be:
+
+```
+  ATTRIBUTE                    VALUE                  WITH IT      THE REST      LIFT   CORR    ADJ P  SIGNIFICANT
+  framing                      solution             8.5% (15)     4.6% (15)  +3.9 pts  +0.72  5.5e-05  yes
+  framing                      problem              4.6% (15)     8.5% (15)  -3.9 pts  -0.72  5.5e-05  yes
+  uses_specific_number         yes                  8.3% (13)     5.3% (17)  +3.1 pts  +0.56   0.0076  yes
+  uses_specific_number         no                   5.3% (17)     8.3% (13)  -3.1 pts  -0.56   0.0076  yes
+  cta_type                     book demo             8.5% (9)     5.8% (21)  +2.8 pts  +0.47    0.074  no
+  cta_type                     learn more           6.0% (10)     6.9% (20)  -0.9 pts  -0.16     0.48  no
+  cta_type                     free trial           5.6% (11)     7.2% (19)  -1.6 pts  -0.29     0.28  no
+  ...
+  word_count                                                                           -0.05     0.79  no
+```
+
+Read a row like this: solution-framed ads averaged 8.5%, the other 15 averaged
+4.6%. Correlation 0.72. Adjusted p-value 0.00006, under 0.05, so significant.
+Book demo looks good (+2.8 pts) but its p-value is 0.074, so it could be chance
+and isn't called a winner. A value is only significant if the attribute
+differs overall and that value differs from the rest.
+
 Full results land in `output/`: `report.md`, `scorecard.csv` (each attribute
 value vs every other row: averages, lift, correlation, adjusted p-value), per-row tags, stats tables, the
 exact discovery prompt and reply, and `ledger.json` (every piece of content with
